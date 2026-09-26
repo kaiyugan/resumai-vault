@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: resumai-api-gateway
+    env: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:postgres@localhost:5432/resume_db
+      - key: SECRET_KEY
+        generateValue: true

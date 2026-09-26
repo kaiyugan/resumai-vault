@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Tailored Resume Intelligence - 1-Click Job Importer",
+  "version": "1.0.0",
+  "description": "Extracts active job posting DOM content directly from your browser tab, bypassing Cloudflare & CAPTCHAs with 100% reliability.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:8090/*",
+    "http://localhost:5173/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "Open Job Importer Side-Panel"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
