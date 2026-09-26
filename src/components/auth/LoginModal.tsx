@@ -52,8 +52,16 @@ export const LoginModal: React.FC = () => {
 
         {/* 1-Click Google Sign-In Demo Button */}
         <button
-          onClick={() => loginWithGoogleDemo()}
-          className="w-full py-3 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+          type="button"
+          onClick={async () => {
+            setLoading(true);
+            try {
+              await loginWithGoogleDemo();
+            } finally {
+              setLoading(false);
+            }
+          }}
+          className="w-full py-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
