@@ -15,9 +15,15 @@ import { CUJStepperBar } from './components/layout/CUJStepperBar';
 import type { JDMatchItem } from './types/resume';
 import { Heart } from 'lucide-react';
 
+import { useAuth } from './context/AuthContext';
+
 function MainApp() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'vault' | 'jd-engine' | 'interviewer' | 'coach' | 'cover-letter' | 'exporter' | 'dashboard' | 'analytics'>('vault');
   const { startElicitation } = useResume();
+
+  const isAdmin = user?.email?.toLowerCase() === 'mirandahousinggroup@gmail.com';
+  const effectiveTab = activeTab === 'analytics' && !isAdmin ? 'vault' : activeTab;
 
   const handleStartMicroInterviewFromJD = (matchItem: JDMatchItem) => {
     startElicitation(matchItem);
@@ -32,39 +38,39 @@ function MainApp() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Critical User Journey Stepper & Guided Action Banner */}
-        {activeTab !== 'dashboard' && activeTab !== 'analytics' && (
-          <CUJStepperBar activeTab={activeTab as any} setActiveTab={setActiveTab as any} />
+        {effectiveTab !== 'dashboard' && effectiveTab !== 'analytics' && (
+          <CUJStepperBar activeTab={effectiveTab as any} setActiveTab={setActiveTab as any} />
         )}
 
-        {activeTab === 'dashboard' && (
+        {effectiveTab === 'dashboard' && (
           <ApplicationsHub onNavigateToStep2={() => setActiveTab('jd-engine')} />
         )}
 
-        {activeTab === 'analytics' && (
+        {effectiveTab === 'analytics' && (
           <AnalyticsDashboard />
         )}
 
-        {activeTab === 'vault' && (
+        {effectiveTab === 'vault' && (
           <MasterVault onNavigateToJDEngine={() => setActiveTab('jd-engine')} />
         )}
 
-        {activeTab === 'jd-engine' && (
+        {effectiveTab === 'jd-engine' && (
           <JDEngine onStartMicroInterview={handleStartMicroInterviewFromJD} />
         )}
 
-        {activeTab === 'interviewer' && (
+        {effectiveTab === 'interviewer' && (
           <MicroInterviewer onNavigateToExporter={() => setActiveTab('exporter')} />
         )}
 
-        {activeTab === 'coach' && (
+        {effectiveTab === 'coach' && (
           <STARCoach />
         )}
 
-        {activeTab === 'cover-letter' && (
+        {effectiveTab === 'cover-letter' && (
           <CoverLetterGenerator />
         )}
 
-        {activeTab === 'exporter' && (
+        {effectiveTab === 'exporter' && (
           <ATSResumeExporter
             onNavigateToHub={() => setActiveTab('dashboard')}
             onNavigateToStep2={() => setActiveTab('jd-engine')}

@@ -106,17 +106,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <span>Applications & Career Hub</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'analytics'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5 text-purple-300" />
-              <span>Analytics & KPIs</span>
-            </button>
+            {/* Admin Analytics & KPIs Tab - Admin Only */}
+            {isAuthenticated && user?.email?.toLowerCase() === 'mirandahousinggroup@gmail.com' && (
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'analytics'
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <BarChart3 className="h-3.5 w-3.5 text-purple-300" />
+                <span>Analytics & KPIs</span>
+              </button>
+            )}
           </nav>
 
           {/* User Account / Sign In Status */}

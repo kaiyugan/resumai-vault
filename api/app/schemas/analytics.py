@@ -20,8 +20,18 @@ class TelemetryEventBatch(BaseModel):
     events: List[TelemetryEventItem]
 
 
+class DailyActivityItem(BaseModel):
+    date: str
+    active_candidates: int
+    jobs_tailored: int
+    resumes_exported: int
+
+
 class KPIDashboardResponse(BaseModel):
     active_sessions_24h: int
+    dau_candidates_24h: int
+    wau_candidates_7d: int
+    mau_candidates_30d: int
     total_resumes_parsed: int
     total_jobs_tailored: int
     total_exports: int
@@ -36,3 +46,4 @@ class KPIDashboardResponse(BaseModel):
     api_error_rate: float
     recent_events_count: int
     top_target_domain: str
+    trailing_daily_activity: List[DailyActivityItem]
