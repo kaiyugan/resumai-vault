@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useResume } from '../../context/ResumeContext';
+import { ingestFileAPI } from '../../services/apiClient';
 import {
   UploadCloud,
   CheckCircle2,
@@ -14,7 +15,10 @@ import {
   GraduationCap,
   Plus,
   Layers,
-  Database
+  Database,
+  FileText,
+  Paperclip,
+  X
 } from 'lucide-react';
 import type { MasterAchievement } from '../../types/resume';
 
@@ -44,9 +48,31 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
   const [newActionVerb, setNewActionVerb] = useState('');
 
   // Ingestion state
+  const [ingestMode, setIngestMode] = useState<'file' | 'text'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawTextIngest, setRawTextIngest] = useState('');
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestSuccess, setIngestSuccess] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileIngest = async () => {
+    if (!selectedFile) return;
+    setIsIngesting(true);
+    setIngestSuccess(false);
+    try {
+      const res = await ingestFileAPI(selectedFile, profile.id || 'prof-1');
+      setIsIngesting(false);
+      setIngestSuccess(true);
+      setSelectedFile(null);
+      setIngestMsg(res.message || `Successfully parsed ${selectedFile.name}`);
+      setTimeout(() => setIngestSuccess(false), 5000);
+    } catch (e: any) {
+      setIsIngesting(false);
+      alert('File ingestion warning: ' + (e.message || 'Failed to parse file'));
+    }
+  };
 
   const handleStartEdit = (ach: MasterAchievement) => {
     setEditingAchId(ach.id);
@@ -464,57 +490,195 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
 
       {/* SUB-TAB 4: Ingestion Pipeline Simulator */}
       {activeSubTab === 'ingest' && (
-        <div className="glass-panel p-6 rounded-2xl border border-purple-200 bg-gradient-to-b from-purple-50/50 to-indigo-50/30 space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-purple-100 text-purple-700 border border-purple-200">
-              <UploadCloud className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-display font-bold text-slate-900">Unstructured Document Ingestion Pipeline</h3>
-              <p className="text-xs text-slate-600">Paste your raw resume, LinkedIn summary, or project text. The AI engine extracts entity records and updates your Master Vault.</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <textarea
-              value={rawTextIngest}
-              onChange={(e) => setRawTextIngest(e.target.value)}
-              placeholder="Paste raw resume text, employment summary, or LinkedIn export details here..."
-              rows={6}
-              className="w-full bg-white border border-slate-300 rounded-xl p-4 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-mono leading-relaxed shadow-sm"
-            />
-
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-slate-500 font-medium">
-                Supports PDF text extraction, LinkedIn export formats, and plain text.
+        <div className="glass-panel p-6 rounded-2xl border border-purple-200 bg-gradient-to-b from-purple-50/50 to-indigo-50/30 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-100 pb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700 border border-purple-200 shadow-sm">
+                <UploadCloud className="h-6 w-6" />
               </div>
+              <div>
+                <h3 className="text-lg font-display font-bold text-slate-900">Career Ingestion Pipeline</h3>
+                <p className="text-xs text-slate-600">Upload your PDF or Word resume, or paste raw text. The AI engine extracts entity records into your Master Vault.</p>
+              </div>
+            </div>
+
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+              <button
+                onClick={() => setIngestMode('file')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  ingestMode === 'file'
+                    ? 'bg-purple-600 text-white shadow'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                <span>Upload PDF / DOCX File</span>
+              </button>
 
               <button
-                onClick={handleIngest}
-                disabled={isIngesting || !rawTextIngest.trim()}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition disabled:opacity-50"
+                onClick={() => setIngestMode('text')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  ingestMode === 'text'
+                    ? 'bg-purple-600 text-white shadow'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                {isIngesting ? (
-                  <>
-                    <Sparkles className="h-4 w-4 animate-spin text-purple-200" />
-                    <span>Extracting Entities...</span>
-                  </>
-                ) : (
-                  <>
-                    <Database className="h-4 w-4" />
-                    <span>Run AI Ingestion Pipeline</span>
-                  </>
-                )}
+                <FileText className="w-3.5 h-3.5" />
+                <span>Paste Raw Text</span>
               </button>
             </div>
-
-            {ingestSuccess && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2 animate-fadeIn shadow-sm">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                <span>Successfully extracted 2 achievement records and 1 new skill! Master Vault updated.</span>
-              </div>
-            )}
           </div>
+
+          {/* FILE UPLOAD MODE */}
+          {ingestMode === 'file' ? (
+            <div className="space-y-4">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".pdf,.docx,.doc,.txt"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    setSelectedFile(e.dataTransfer.files[0]);
+                  }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-8 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center space-y-3 ${
+                  isDragOver
+                    ? 'border-purple-500 bg-purple-100/60 scale-[1.01]'
+                    : selectedFile
+                    ? 'border-emerald-400 bg-emerald-50/60'
+                    : 'border-purple-200 bg-white hover:border-purple-400 hover:bg-purple-50/40'
+                }`}
+              >
+                {selectedFile ? (
+                  <div className="space-y-2">
+                    <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-sm">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="font-bold text-sm text-slate-900">{selectedFile.name}</span>
+                      <span className="text-xs font-mono text-slate-500">
+                        ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                        }}
+                        className="p-1 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-emerald-600 font-medium">Ready for AI entity parsing! Click button below to process.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="mx-auto w-12 h-12 rounded-2xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 shadow-sm">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        Drag & Drop your Resume Attachment here
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Supports <span className="font-semibold text-purple-700">PDF (.pdf)</span>, <span className="font-semibold text-purple-700">Word (.docx)</span>, and Plain Text (.txt)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition shadow-sm"
+                    >
+                      Browse Local Computer Files
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-xs text-slate-500 font-medium">
+                  Direct binary parser supports ReportLab, Microsoft Word, and Adobe PDF formats.
+                </div>
+
+                <button
+                  onClick={handleFileIngest}
+                  disabled={isIngesting || !selectedFile}
+                  className="flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition disabled:opacity-50"
+                >
+                  {isIngesting ? (
+                    <>
+                      <Sparkles className="h-4 w-4 animate-spin text-purple-200" />
+                      <span>Parsing Resume File...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-4 w-4" />
+                      <span>Upload & Extract Entities</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* RAW TEXT PASTE MODE */
+            <div className="space-y-3">
+              <textarea
+                value={rawTextIngest}
+                onChange={(e) => setRawTextIngest(e.target.value)}
+                placeholder="Paste raw resume text, employment summary, or LinkedIn export details here..."
+                rows={6}
+                className="w-full bg-white border border-slate-300 rounded-xl p-4 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-mono leading-relaxed shadow-sm"
+              />
+
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-500 font-medium">
+                  Supports plain text and LinkedIn export paragraphs.
+                </div>
+
+                <button
+                  onClick={handleIngest}
+                  disabled={isIngesting || !rawTextIngest.trim()}
+                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition disabled:opacity-50"
+                >
+                  {isIngesting ? (
+                    <>
+                      <Sparkles className="h-4 w-4 animate-spin text-purple-200" />
+                      <span>Extracting Entities...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-4 w-4" />
+                      <span>Run AI Ingestion Pipeline</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {ingestSuccess && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2 animate-fadeIn shadow-sm">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+              <span>{ingestMsg || 'Successfully extracted career achievements and skills! Master Vault updated.'}</span>
+            </div>
+          )}
         </div>
       )}
 

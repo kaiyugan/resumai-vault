@@ -67,6 +67,19 @@ export async function ingestTextAPI(rawText: string, profileId: string = 'prof-1
   return res.json();
 }
 
+export async function ingestFileAPI(file: File, profileId: string = 'prof-1') {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('profile_id', profileId);
+
+  const res = await fetch(`${API_BASE_URL}/vault/ingest/file`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) throw new Error('Failed to ingest resume file');
+  return res.json();
+}
+
 export async function deconstructJobAPI(title: string, company: string, rawDescription: string) {
   const res = await fetch(`${API_BASE_URL}/jobs/deconstruct`, {
     method: 'POST',
