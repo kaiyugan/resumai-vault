@@ -22,14 +22,15 @@ export const LoginModal: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [hasClientId, setHasClientId] = useState<boolean>(false);
 
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '660414317015-r17otka41l27rpdp94l1np8v9c6dptch.apps.googleusercontent.com';
+
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    setHasClientId(Boolean(clientId));
+    setHasClientId(Boolean(GOOGLE_CLIENT_ID));
 
     if (window.google?.accounts?.id) {
       try {
         window.google.accounts.id.initialize({
-          client_id: clientId || '1088741349886-placeholder.apps.googleusercontent.com',
+          client_id: GOOGLE_CLIENT_ID,
           callback: (response: any) => {
             if (response.credential) {
               const payload = parseGoogleJwt(response.credential);
@@ -42,9 +43,9 @@ export const LoginModal: React.FC = () => {
           itp_support: true
         });
 
-        // Render official Google Sign-In button container if client ID configured
+        // Render official Google Sign-In button container
         const container = document.getElementById('googleNativeBtnContainer');
-        if (container && clientId) {
+        if (container) {
           container.innerHTML = '';
           window.google.accounts.id.renderButton(container, {
             type: 'standard',
@@ -106,9 +107,7 @@ export const LoginModal: React.FC = () => {
 
   const triggerGoogleSignIn = () => {
     setErrorMessage('');
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (clientId && window.google?.accounts?.id) {
-      // Trigger Google's native account selector prompt in Chrome
+    if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt();
     } else {
       setShowGoogleEmailInput(true);
