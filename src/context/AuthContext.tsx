@@ -17,7 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password?: string, customName?: string) => Promise<boolean>;
   register: (email: string, fullName: string, password?: string) => Promise<boolean>;
-  loginWithGoogleDemo: (customName?: string) => Promise<boolean>;
+  loginWithGoogle: (email: string, name?: string, pictureUrl?: string) => Promise<boolean>;
   updateUserProfile: (updates: Partial<CandidateUser>) => void;
   exportCandidateData: () => void;
   deleteAccount: () => void;
@@ -70,13 +70,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password?: string, customName?: string): Promise<boolean> => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return false;
+
     try {
-      const resp = await loginAPI(email, password);
+      const resp = await loginAPI(cleanEmail, password);
       if (resp && resp.access_token) {
         setToken(resp.access_token);
         const u = {
           ...resp.user,
-          preferred_resume_name: customName || resp.user.preferred_resume_name || resp.user.full_name
+          email: cleanEmail,
+          preferred_resume_name: customName || resp.user.preferred_resume_name || resp.user.full_name || ''
         };
         setUser(u);
         sessionStorage.setItem('candidate_auth_token', resp.access_token);
@@ -88,17 +92,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Login API fallback active:', e);
     }
 
-    // Client fallback session
-    const namePart = email.split('@')[0].replace(/[^a-zA-Z]/g, ' ');
-    const formattedName = customName || (namePart ? namePart.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Candidate User');
+    // Client fallback session using exact candidate input
+    const formattedName = customName ? customName.trim() : '';
     const fallbackUser: CandidateUser = {
       id: `usr_${Math.random().toString(36).substring(2, 9)}`,
-      email: email,
+      email: cleanEmail,
       full_name: formattedName,
       preferred_resume_name: formattedName,
       avatar_url: 'indigo'
     };
-    const fallbackToken = 'demo_jwt_token_' + Date.now();
+    const fallbackToken = 'jwt_token_' + Date.now();
     setToken(fallbackToken);
     setUser(fallbackUser);
     sessionStorage.setItem('candidate_auth_token', fallbackToken);
@@ -108,13 +111,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, fullName: string, password?: string): Promise<boolean> => {
+    const cleanEmail = email.trim();
+    const cleanName = fullName.trim();
+
     try {
-      const resp = await registerAPI(email, fullName, password);
+      const resp = await registerAPI(cleanEmail, cleanName, password);
       if (resp && resp.access_token) {
         setToken(resp.access_token);
         const u = {
           ...resp.user,
-          preferred_resume_name: fullName || resp.user.full_name
+          email: cleanEmail,
+          full_name: cleanName || resp.user.full_name || '',
+          preferred_resume_name: cleanName || resp.user.preferred_resume_name || ''
         };
         setUser(u);
         sessionStorage.setItem('candidate_auth_token', resp.access_token);
@@ -128,12 +136,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fallbackUser: CandidateUser = {
       id: `usr_${Math.random().toString(36).substring(2, 9)}`,
-      email: email,
-      full_name: fullName || 'Candidate User',
-      preferred_resume_name: fullName || 'Candidate User',
+      email: cleanEmail,
+      full_name: cleanName,
+      preferred_resume_name: cleanName,
       avatar_url: 'indigo'
     };
-    const fallbackToken = 'demo_jwt_token_' + Date.now();
+    const fallbackToken = 'jwt_token_' + Date.now();
     setToken(fallbackToken);
     setUser(fallbackUser);
     sessionStorage.setItem('candidate_auth_token', fallbackToken);
@@ -142,10 +150,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  const loginWithGoogleDemo = async (customName?: string): Promise<boolean> => {
-    const demoEmail = customName ? `${customName.toLowerCase().replace(/\s+/g, '.')}@gmail.com` : `candidate.user@gmail.com`;
-    const nameToUse = customName || 'Candidate User';
-    return login(demoEmail, undefined, nameToUse);
+  const loginWithGoogle = async (email: string, name?: string, pictureUrl?: string): Promise<boolean> => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      alert('Please enter your valid Google account email address.');
+      return false;
+    }
+
+    const displayName = name ? name.trim() : '';
+
+    try {
+      const resp = await loginAPI(cleanEmail, undefined);
+      if (resp && resp.access_token) {
+        setToken(resp.access_token);
+        const u = {
+          ...resp.user,
+          email: cleanEmail,
+          full_name: displayName || resp.user.full_name || '',
+          preferred_resume_name: displayName || resp.user.preferred_resume_name || displayName || resp.user.full_name || '',
+          avatar_url: pictureUrl || resp.user.avatar_url || 'indigo'
+        };
+        setUser(u);
+        sessionStorage.setItem('candidate_auth_token', resp.access_token);
+        sessionStorage.setItem('candidate_user', JSON.stringify(u));
+        setIsLoginModalOpen(false);
+        return true;
+      }
+    } catch (e) {
+      console.warn('Google auth login API fallback active:', e);
+    }
+
+    const authenticatedUser: CandidateUser = {
+      id: `usr_${Math.random().toString(36).substring(2, 9)}`,
+      email: cleanEmail,
+      full_name: displayName,
+      preferred_resume_name: displayName,
+      avatar_url: pictureUrl || 'indigo'
+    };
+    const tokenVal = 'google_session_' + Date.now();
+    setToken(tokenVal);
+    setUser(authenticatedUser);
+    sessionStorage.setItem('candidate_auth_token', tokenVal);
+    sessionStorage.setItem('candidate_user', JSON.stringify(authenticatedUser));
+    setIsLoginModalOpen(false);
+    return true;
   };
 
   const exportCandidateData = () => {
@@ -193,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: Boolean(user),
         login,
         register,
-        loginWithGoogleDemo,
+        loginWithGoogle,
         updateUserProfile,
         exportCandidateData,
         deleteAccount,

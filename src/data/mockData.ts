@@ -10,13 +10,13 @@ import type {
 
 export const initialProfile: Profile = {
   id: 'prof-1',
-  name: 'Candidate Name',
-  email: 'candidate@example.com',
-  title: 'Target Professional Title',
-  phone: '+1 (555) 000-0000',
-  location: 'City, State',
-  linkedin: 'linkedin.com/in/candidate',
-  github: 'github.com/candidate'
+  name: '',
+  email: '',
+  title: '',
+  phone: '',
+  location: '',
+  linkedin: '',
+  github: ''
 };
 
 export const initialExperiences: MasterExperience[] = [];

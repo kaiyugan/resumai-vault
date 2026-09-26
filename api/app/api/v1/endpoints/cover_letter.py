@@ -19,7 +19,7 @@ class CoverLetterRequest(BaseModel):
 @router.post("/generate", response_model=Dict[str, Any])
 def generate_cover_letter(req: CoverLetterRequest, db: Session = Depends(get_db)):
     profile = db.query(Profile).first()
-    prof_name = profile.full_name if profile else "Alex Rivera"
+    prof_name = profile.full_name if (profile and profile.full_name) else ""
     prof_title = "Senior Staff Software Engineer"
 
     job = None

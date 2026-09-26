@@ -38,6 +38,13 @@ export const CandidateProfileModal: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
+  React.useEffect(() => {
+    if (user) {
+      setPreferredName(user.preferred_resume_name || user.full_name || '');
+      setSelectedAvatar(user.avatar_url || 'indigo');
+    }
+  }, [user]);
+
   if (!isProfileModalOpen || !user) return null;
 
   const handleSaveProfile = (e: React.FormEvent) => {
