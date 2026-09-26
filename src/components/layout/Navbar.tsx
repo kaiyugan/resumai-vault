@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Database, FileSearch, MessageSquareCode, FileText, FolderKanban, BarChart3, LogIn, LogOut } from 'lucide-react';
+import { Sparkles, Database, FileSearch, MessageSquareCode, FileText, FolderKanban, BarChart3, LogIn } from 'lucide-react';
 import { useResume } from '../../context/ResumeContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -10,7 +10,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { elicitationSessions } = useResume();
-  const { user, isAuthenticated, setIsLoginModalOpen, logout } = useAuth();
+  const { user, isAuthenticated, setIsLoginModalOpen, setIsProfileModalOpen } = useAuth();
   const pendingGaps = elicitationSessions.filter((s) => s.status === 'PENDING').length;
 
   return (
@@ -125,18 +125,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           {/* User Account / Sign In Status */}
           <div className="flex items-center space-x-3">
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-                <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">
-                  {user.full_name.charAt(0)}
+              <div 
+                onClick={() => setIsProfileModalOpen(true)}
+                className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-200/80 text-xs cursor-pointer transition-all shadow-sm group"
+                title="Manage Account, Display Name & Data Controls"
+              >
+                <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shadow-sm border border-indigo-400">
+                  {(user.preferred_resume_name || user.full_name).charAt(0).toUpperCase()}
                 </div>
-                <span className="font-semibold text-slate-800 hidden sm:inline">{user.full_name}</span>
-                <button
-                  onClick={logout}
-                  title="Sign Out"
-                  className="text-slate-400 hover:text-rose-600 ml-1"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                <span className="font-semibold text-slate-800 hidden sm:inline group-hover:text-indigo-600">
+                  {user.preferred_resume_name || user.full_name}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">⚙️</span>
               </div>
             ) : (
               <button

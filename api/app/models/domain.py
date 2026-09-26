@@ -16,6 +16,8 @@ class Profile(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String(255), unique=True, nullable=False)
     full_name = Column(String(255), nullable=False)
+    preferred_resume_name = Column(String(255), nullable=True)
+    avatar_url = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
     location = Column(String(255), nullable=True)
     linkedin_url = Column(String(500), nullable=True)

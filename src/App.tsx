@@ -93,12 +93,15 @@ function MainApp() {
   );
 }
 
+import { CandidateProfileModal } from './components/auth/CandidateProfileModal';
+
 export default function App() {
   return (
     <AuthProvider>
       <ResumeProvider>
         <MainApp />
         <LoginModal />
+        <CandidateProfileModal />
       </ResumeProvider>
     </AuthProvider>
   );

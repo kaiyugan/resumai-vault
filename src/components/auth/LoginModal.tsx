@@ -54,9 +54,11 @@ export const LoginModal: React.FC = () => {
         <button
           type="button"
           onClick={async () => {
+            const enteredName = window.prompt("Enter your Candidate Name for your Master Vault & Resumes:", "Kaio Miranda");
+            if (enteredName === null) return; // User cancelled prompt
             setLoading(true);
             try {
-              await loginWithGoogleDemo();
+              await loginWithGoogleDemo(enteredName.trim() || 'Candidate User');
             } finally {
               setLoading(false);
             }

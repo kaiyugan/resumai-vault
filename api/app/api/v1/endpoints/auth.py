@@ -94,6 +94,14 @@ def login_candidate_account(
     )
 
 
+class ProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    preferred_resume_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    location: Optional[str] = None
+    linkedin_url: Optional[str] = None
+
+
 @router.get("/me")
 def get_current_candidate_profile(
     current_user: Profile = Depends(get_current_user)
@@ -103,6 +111,51 @@ def get_current_candidate_profile(
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
+        "preferred_resume_name": current_user.preferred_resume_name or current_user.full_name,
+        "avatar_url": current_user.avatar_url or "indigo",
         "location": current_user.location,
         "linkedin_url": current_user.linkedin_url
     }
+
+
+@router.patch("/profile")
+def update_candidate_profile(
+    req: ProfileUpdateRequest,
+    current_user: Profile = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Updates profile information for authenticated candidate user."""
+    if req.full_name is not None:
+        current_user.full_name = req.full_name
+    if req.preferred_resume_name is not None:
+        current_user.preferred_resume_name = req.preferred_resume_name
+    if req.avatar_url is not None:
+        current_user.avatar_url = req.avatar_url
+    if req.location is not None:
+        current_user.location = req.location
+    if req.linkedin_url is not None:
+        current_user.linkedin_url = req.linkedin_url
+
+    db.commit()
+    db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "preferred_resume_name": current_user.preferred_resume_name or current_user.full_name,
+        "avatar_url": current_user.avatar_url or "indigo",
+        "location": current_user.location,
+        "linkedin_url": current_user.linkedin_url
+    }
+
+
+@router.delete("/account")
+def delete_candidate_account(
+    current_user: Profile = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Permanently purges candidate account and all associated vault/job data."""
+    db.delete(current_user)
+    db.commit()
+    return {"status": "success", "message": "Candidate account permanently deleted."}
+
