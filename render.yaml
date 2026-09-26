@@ -7,6 +7,13 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:postgres@localhost:5432/resume_db
+        fromDatabase:
+          name: resumai-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
+
+databases:
+  - name: resumai-db
+    plan: free
+
