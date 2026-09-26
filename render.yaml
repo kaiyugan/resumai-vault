@@ -1,19 +1,15 @@
 services:
   - type: web
     name: resumai-api-gateway
-    env: docker
-    dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    env: python
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: resumai-db
-          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.0
       - key: SECRET_KEY
         generateValue: true
 
-databases:
-  - name: resumai-db
-    plan: free
 
