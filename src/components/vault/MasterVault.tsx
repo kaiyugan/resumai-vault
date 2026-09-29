@@ -32,8 +32,12 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
     addAchievement,
     updateAchievement,
     deleteAchievement,
-    ingestUnstructuredText
+    ingestUnstructuredText,
+    loadDemoData,
+    clearVault
   } = useResume();
+
+  const isEmptyVault = experiences.length === 0 && achievements.length === 0;
 
   const [activeSubTab, setActiveSubTab] = useState<'experiences' | 'skills' | 'education' | 'ingest'>('experiences');
   const [editingAchId, setEditingAchId] = useState<string | null>(null);
@@ -140,109 +144,374 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
           </div>
 
           <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setActiveSubTab('ingest')}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 shadow-sm transition"
-            >
-              <UploadCloud className="h-4 w-4 text-indigo-600" />
-              <span>Ingest Raw Resume</span>
-            </button>
+            {isEmptyVault ? (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={loadDemoData}
+                  className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-700 font-bold text-xs border border-indigo-200 shadow-sm transition transform hover:-translate-y-0.5"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span>⚡ Load Demo Candidate Profile</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={clearVault}
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-semibold text-xs border border-slate-200 shadow-sm transition"
+                  title="Clear Vault to test initial empty state"
+                >
+                  Clear Vault
+                </button>
 
-            <button
-              onClick={onNavigateToJDEngine}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition transform hover:-translate-y-0.5"
-            >
-              <span>Target JD Matching</span>
-              <Sparkles className="h-4 w-4" />
-            </button>
+                <button
+                  onClick={() => setActiveSubTab('ingest')}
+                  className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 shadow-sm transition"
+                >
+                  <UploadCloud className="h-4 w-4 text-indigo-600" />
+                  <span>Ingest More Data</span>
+                </button>
+
+                <button
+                  onClick={onNavigateToJDEngine}
+                  className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition transform hover:-translate-y-0.5"
+                >
+                  <span>Next: Target JD Matching</span>
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Vault Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-200/80">
-          <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">Total Work Experiences</p>
-            <p className="text-xl font-display font-extrabold text-slate-900 mt-1">{experiences.length}</p>
+        {/* Vault Stats Bar - HIDDEN UNTIL RESUME/VAULT DATA EXISTS */}
+        {!isEmptyVault && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-200/80 animate-fadeIn">
+            <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+              <p className="text-xs text-slate-500 font-medium">Total Work Experiences</p>
+              <p className="text-xl font-display font-extrabold text-slate-900 mt-1">{experiences.length}</p>
+            </div>
+            <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+              <p className="text-xs text-slate-500 font-medium">Master Bullet Records</p>
+              <p className="text-xl font-display font-extrabold text-slate-900 mt-1">{achievements.length}</p>
+            </div>
+            <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+              <p className="text-xs text-slate-500 font-medium">Quantified Metrics (XYZ)</p>
+              <p className="text-xl font-display font-extrabold text-emerald-600 mt-1">
+                {achievements.filter((a) => a.quantified_metric.value).length} / {achievements.length}
+              </p>
+            </div>
+            <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+              <p className="text-xs text-slate-500 font-medium">Indexed Skills Matrix</p>
+              <p className="text-xl font-display font-extrabold text-indigo-600 mt-1">{skills.length}</p>
+            </div>
           </div>
-          <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">Master Bullet Records</p>
-            <p className="text-xl font-display font-extrabold text-slate-900 mt-1">{achievements.length}</p>
-          </div>
-          <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">Quantified Metrics (XYZ)</p>
-            <p className="text-xl font-display font-extrabold text-emerald-600 mt-1">
-              {achievements.filter((a) => a.quantified_metric.value).length} / {achievements.length}
-            </p>
-          </div>
-          <div className="bg-white/90 p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">Indexed Skills Matrix</p>
-            <p className="text-xl font-display font-extrabold text-indigo-600 mt-1">{skills.length}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Sub-Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setActiveSubTab('experiences')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              activeSubTab === 'experiences'
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Briefcase className="h-4 w-4" />
-            <span>Experiences & Achievements ({achievements.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('skills')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              activeSubTab === 'skills'
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            <span>Skills Matrix ({skills.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('education')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              activeSubTab === 'education'
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <GraduationCap className="h-4 w-4" />
-            <span>Education & Honors ({educations.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('ingest')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              activeSubTab === 'ingest'
-                ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <UploadCloud className="h-4 w-4" />
-            <span>Unstructured Ingest</span>
-          </button>
-        </div>
-
-        {activeSubTab === 'experiences' && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Achievement</span>
-          </button>
         )}
       </div>
+
+      {/* Navigation Sub-Tabs - HIDDEN UNTIL VAULT DATA IS LOADED */}
+      {!isEmptyVault && (
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setActiveSubTab('experiences')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                activeSubTab === 'experiences'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Briefcase className="h-4 w-4" />
+              <span>Experiences & Achievements ({achievements.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('skills')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                activeSubTab === 'skills'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Layers className="h-4 w-4" />
+              <span>Skills Matrix ({skills.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('education')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                activeSubTab === 'education'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              <span>Education & Honors ({educations.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('ingest')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                activeSubTab === 'ingest'
+                  ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <UploadCloud className="h-4 w-4" />
+              <span>Unstructured Ingest</span>
+            </button>
+          </div>
+
+          {activeSubTab === 'experiences' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Achievement</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* FIRST-TIME CANDIDATE HERO ONBOARDING CARD (When Vault is Empty) */}
+      {isEmptyVault && (
+        <div id="resume-upload-section" className="glass-panel p-8 sm:p-10 rounded-2xl border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/70 via-white to-purple-50/40 shadow-xl space-y-8 animate-fadeIn">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <UploadCloud className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 tracking-tight">
+              Build Your Master Vault in 60 Seconds
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Upload your current resume file, paste text, or import from LinkedIn. Our AI engine will extract your work history into structured, quantifiable entity records.
+            </p>
+          </div>
+
+          {/* Unified Ingestion Method Controls */}
+          <div className="flex items-center justify-center space-x-2 bg-slate-100 p-1.5 rounded-xl max-w-md mx-auto border border-slate-200 shadow-inner">
+            <button
+              onClick={() => setIngestMode('file')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                ingestMode === 'file'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Paperclip className="w-4 h-4" />
+              <span>Upload PDF / Word</span>
+            </button>
+
+            <button
+              onClick={() => setIngestMode('text')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                ingestMode === 'text'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Paste Text</span>
+            </button>
+
+            <button
+              onClick={() => setIngestMode('bookmarklet')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                ingestMode === 'bookmarklet'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>LinkedIn Importer</span>
+            </button>
+          </div>
+
+          {/* Ingestion Mode Main View */}
+          <div className="max-w-3xl mx-auto">
+            {ingestMode === 'file' ? (
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".pdf,.docx,.doc,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                    }
+                  }}
+                />
+
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(true);
+                  }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setSelectedFile(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-10 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center space-y-4 ${
+                    isDragOver
+                      ? 'border-indigo-500 bg-indigo-100/60 scale-[1.01]'
+                      : selectedFile
+                      ? 'border-emerald-400 bg-emerald-50/60'
+                      : 'border-indigo-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/40'
+                  }`}
+                >
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-sm">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="font-bold text-sm text-slate-900">{selectedFile.name}</span>
+                        <span className="text-xs font-mono text-slate-500">
+                          ({(selectedFile.size / 1024).toFixed(1)} KB)
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFile(null);
+                          }}
+                          className="p-1 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-emerald-600 font-medium">Ready for AI entity parsing! Click button below to process.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 shadow-sm">
+                        <UploadCloud className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-slate-900">
+                          Drag & Drop your Resume Attachment here
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Supports <span className="font-semibold text-indigo-700">PDF (.pdf)</span>, <span className="font-semibold text-indigo-700">Word (.docx)</span>, and Plain Text (.txt)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition shadow-sm"
+                      >
+                        Browse Local Computer Files
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs text-slate-500 font-medium">
+                    ⚡ Instant AI parsing automatically builds your Master Vault records.
+                  </span>
+
+                  <button
+                    onClick={handleFileIngest}
+                    disabled={isIngesting || !selectedFile}
+                    className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {isIngesting ? (
+                      <>
+                        <Sparkles className="h-4 w-4 animate-spin text-indigo-200" />
+                        <span>Parsing Resume File...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4" />
+                        <span>🚀 Upload & Build Vault</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : ingestMode === 'text' ? (
+              <div className="space-y-4">
+                <textarea
+                  value={rawTextIngest}
+                  onChange={(e) => setRawTextIngest(e.target.value)}
+                  placeholder="Paste raw resume text, work experience summaries, or LinkedIn profile details here..."
+                  rows={8}
+                  className="w-full bg-white border border-indigo-200 rounded-xl p-4 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed shadow-sm"
+                />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500 font-medium">
+                    Supports plain text, bulleted notes, and LinkedIn export paragraphs.
+                  </span>
+
+                  <button
+                    onClick={handleIngest}
+                    disabled={isIngesting || !rawTextIngest.trim()}
+                    className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {isIngesting ? (
+                      <>
+                        <Sparkles className="h-4 w-4 animate-spin text-indigo-200" />
+                        <span>Extracting Entities...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4" />
+                        <span>🚀 Process Text & Build Vault</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white space-y-4 shadow-xl border border-indigo-500/30">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-white">1-Click LinkedIn & Web Profile Importer</h4>
+                    <p className="text-xs text-indigo-200">Import profiles directly from your browser when viewing any LinkedIn page.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                    Drag this button to your Browser Bookmarks Bar:
+                  </p>
+                  <a
+                    href={bookmarkletCode}
+                    onClick={(e) => e.preventDefault()}
+                    className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-xs shadow cursor-grab hover:brightness-110 transition"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>📌 Import to ResumAI Vault</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Demo Loader Option */}
+          <div className="pt-4 border-t border-slate-200/80 text-center">
+            <p className="text-xs text-slate-500 font-medium">
+              Don't have a resume handy?{' '}
+              <button
+                onClick={loadDemoData}
+                className="text-indigo-600 font-bold hover:underline ml-1"
+              >
+                ⚡ Click here to load Kaio Miranda's sample profile & test drive the platform
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* SUB-TAB 1: Experiences & Achievements */}
       {activeSubTab === 'experiences' && (

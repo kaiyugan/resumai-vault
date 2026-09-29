@@ -209,10 +209,27 @@ export const CUJStepperBar: React.FC<CUJStepperBarProps> = ({ activeTab, setActi
 
         {currentStep.nextTab && (
           <button
-            onClick={() => setActiveTab(currentStep.nextTab!)}
-            className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition shrink-0 transform hover:-translate-y-0.5"
+            onClick={() => {
+              if (!hasVaultData && activeTab === 'vault') {
+                const uploadEl = document.getElementById('resume-upload-section');
+                if (uploadEl) {
+                  uploadEl.scrollIntoView({ behavior: 'smooth' });
+                }
+              } else {
+                setActiveTab(currentStep.nextTab!);
+              }
+            }}
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 transform hover:-translate-y-0.5 ${
+              !hasVaultData && activeTab === 'vault'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-500/20'
+            }`}
           >
-            <span>{currentStep.nextActionLabel}</span>
+            <span>
+              {!hasVaultData && activeTab === 'vault'
+                ? '🚀 Upload Resume to Begin'
+                : currentStep.nextActionLabel}
+            </span>
             <ArrowRight className="h-4 w-4" />
           </button>
         )}

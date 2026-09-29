@@ -65,6 +65,8 @@ interface ResumeContextType {
   runQualityPolishOnAllBullets: () => void;
   calculateATSScore: () => number;
   compilationTimestamp: string;
+  loadDemoData: () => void;
+  clearVault: () => void;
 }
 
 const anyKeywordIn = (text: string, keywords: string[]): boolean => {
@@ -866,6 +868,19 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return Math.min(98, Math.round(rawScore));
   };
 
+  const loadDemoData = () => {
+    setProfile(initialProfile);
+    setExperiences(initialExperiences);
+    setAchievements(initialAchievements);
+    setSkills(initialSkills);
+  };
+
+  const clearVault = () => {
+    setExperiences([]);
+    setAchievements([]);
+    setSkills([]);
+  };
+
   return (
     <ResumeContext.Provider
       value={{
@@ -906,7 +921,9 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         commitDirectXYZBulletToVault,
         runQualityPolishOnAllBullets,
         calculateATSScore,
-        compilationTimestamp
+        compilationTimestamp,
+        loadDemoData,
+        clearVault
       }}
     >
       {children}
