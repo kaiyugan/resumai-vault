@@ -47,8 +47,9 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
   const [newMetricVal, setNewMetricVal] = useState('');
   const [newActionVerb, setNewActionVerb] = useState('');
 
-  // Ingestion state
-  const [ingestMode, setIngestMode] = useState<'file' | 'text'>('file');
+  const [ingestMode, setIngestMode] = useState<'file' | 'text' | 'bookmarklet'>('file');
+
+  const bookmarkletCode = `javascript:(function(){var n=encodeURIComponent(document.querySelector('h1')?.innerText||document.title);var u=encodeURIComponent(window.location.href);var t=encodeURIComponent((document.body.innerText||'').substring(0,5000));var h=window.location.origin.includes('localhost')?window.location.origin:'https://resumai-vault.vercel.app';window.open(h+'/?import=1&name='+n+'&url='+u+'&text='+t,'_blank');})();`;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawTextIngest, setRawTextIngest] = useState('');
   const [isIngesting, setIsIngesting] = useState(false);
@@ -527,6 +528,18 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
                 <FileText className="w-3.5 h-3.5" />
                 <span>Paste Raw Text</span>
               </button>
+
+              <button
+                onClick={() => setIngestMode('bookmarklet')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  ingestMode === 'bookmarklet'
+                    ? 'bg-purple-600 text-white shadow'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>LinkedIn 1-Click Importer</span>
+              </button>
             </div>
           </div>
 
@@ -636,7 +649,7 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
                 </button>
               </div>
             </div>
-          ) : (
+          ) : ingestMode === 'text' ? (
             /* RAW TEXT PASTE MODE */
             <div className="space-y-3">
               <textarea
@@ -669,6 +682,57 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          ) : (
+            /* LINKEDIN 1-CLICK BOOKMARKLET MODE */
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white space-y-4 shadow-xl border border-indigo-500/30">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">1-Click LinkedIn & Web Profile Importer</h4>
+                  <p className="text-xs text-indigo-200">Import profiles directly from your browser when viewing any LinkedIn page.</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">1-Click Bookmarklet Shortcut:</span>
+                  <a
+                    href={bookmarkletCode}
+                    onClick={(e) => e.preventDefault()}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition"
+                    title="Drag this button to your Browser Bookmarks Bar!"
+                  >
+                    <span>📥 Import to ResumAI Vault</span>
+                  </a>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  💡 <span className="font-semibold text-slate-200">Instructions:</span> Drag the button above to your browser bookmarks bar (or copy the code below to your bookmarks). When viewing any LinkedIn profile, click the bookmarklet to automatically ingest candidate achievements into your Master Vault!
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-slate-400 uppercase">Bookmarklet JavaScript Code:</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={bookmarkletCode}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] font-mono text-indigo-300 focus:outline-none select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(bookmarkletCode);
+                      alert('Bookmarklet code copied to clipboard!');
+                    }}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition shrink-0"
+                  >
+                    Copy Code
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -11,7 +11,8 @@ import {
   Edit3,
   RotateCcw,
   Check,
-  MessageSquare
+  MessageSquare,
+  HelpCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { DraftXYZBullet } from '../../types/resume';
@@ -23,6 +24,46 @@ interface ChatMessage {
   timestamp: string;
   options?: { label: string; action: () => void; variant?: 'primary' | 'secondary' | 'danger' }[];
 }
+
+const isClarifyingQuestion = (text: string): boolean => {
+  const stripped = text.trim();
+  if (stripped.endsWith('?')) return true;
+
+  const lower = stripped.toLowerCase();
+  const signals = [
+    'what do you mean', 'could you clarify', 'can you clarify', 'what kind of',
+    'can you give an example', 'give me an example', 'how do i', 'what is',
+    'should i include', 'does this count', 'not sure what', 'explain',
+    'what metric', 'which project', 'can you explain', 'what format',
+    'what type', 'does it matter', 'is it okay if', 'how should i', 'example'
+  ];
+  return signals.some((sig) => lower.includes(sig));
+};
+
+const generateAgenticClarification = (gapTitle: string, _questionText: string): string => {
+  const gapLower = gapTitle.toLowerCase();
+  let example = '';
+  let concept = '';
+
+  if (gapLower.includes('latency') || gapLower.includes('performance') || gapLower.includes('speed')) {
+    example = "For example: 'Reduced web application page load time by 45% (from 2.4s to 1.3s)' or 'Lowered API p99 latency from 180ms to 45ms'.";
+    concept = 'how you improved speed, throughput, or responsiveness in your code or architecture.';
+  } else if (gapLower.includes('team') || gapLower.includes('leadership') || gapLower.includes('manage')) {
+    example = "For example: 'Led a cross-functional engineering team of 8 developers delivering 4 major production releases on schedule'.";
+    concept = 'the team size, leadership scope, or process improvements you spearheaded.';
+  } else if (gapLower.includes('security') || gapLower.includes('soc') || gapLower.includes('compliance')) {
+    example = "For example: 'Achieved 100% SOC2 Type II compliance readiness across 32 security controls with zero critical findings'.";
+    concept = 'how you implemented security policies, access controls, RBAC, or audit readiness.';
+  } else if (gapLower.includes('cloud') || gapLower.includes('aws') || gapLower.includes('infrastructure')) {
+    example = "For example: 'Migrated legacy workloads to AWS ECS/EKS, reducing cloud infrastructure operating costs by 28%'.";
+    concept = 'the scale of infrastructure, cloud architecture, or cost optimizations achieved.';
+  } else {
+    example = `For example: 'Architected and deployed ${gapTitle} solution, improving system reliability by 35%'.`;
+    concept = `how you applied ${gapTitle} in practice and what outcome or metric resulted.`;
+  }
+
+  return `Great question! When asking about **"${gapTitle}"**, we are looking for ${concept}\n\n💡 **Example of what works well:** ${example}\n\nFeel free to share any project details, scale, or metrics from your past work when you're ready!`;
+};
 
 export const MicroInterviewer: React.FC<{ onNavigateToExporter: () => void }> = ({ onNavigateToExporter }) => {
   const {
@@ -275,10 +316,37 @@ export const MicroInterviewer: React.FC<{ onNavigateToExporter: () => void }> = 
     e.preventDefault();
     if (!userInputText.trim()) return;
 
+    const currentGap = availableGaps[currentGapIndex];
+    const rawInput = userInputText.trim();
+
+    // Check if input is a clarifying question
+    if (isClarifyingQuestion(rawInput)) {
+      const gapTitle = currentGap?.jd_requirement || 'this requirement';
+      const clarification = generateAgenticClarification(gapTitle, rawInput);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}-u`,
+          sender: 'user',
+          text: rawInput,
+          timestamp: getTime()
+        },
+        {
+          id: `msg-${Date.now()}-a`,
+          sender: 'assistant',
+          text: clarification,
+          timestamp: getTime()
+        }
+      ]);
+      setUserInputText('');
+      return; // DO NOT advance step or force bullet synthesis!
+    }
+
     if (currentStep === 'PROBE_ACTION') {
-      handleAnswerAction(userInputText.trim());
+      handleAnswerAction(rawInput);
     } else if (currentStep === 'GATE_METRIC') {
-      handleAnswerMetric(true, userInputText.trim());
+      handleAnswerMetric(true, rawInput);
     }
   };
 
@@ -487,26 +555,59 @@ export const MicroInterviewer: React.FC<{ onNavigateToExporter: () => void }> = 
 
             {/* Form Input for Text Answers */}
             {currentStep !== 'REVIEW_SUMMARY' && currentStep !== 'GATE_EXPERIENCE' && (
-              <form onSubmit={handleFormSubmit} className="flex items-center space-x-3">
-                <input
-                  type="text"
-                  placeholder={
-                    currentStep === 'PROBE_ACTION'
-                      ? 'Describe your project, action taken, or methodology...'
-                      : 'Enter specific metric (e.g. 35% velocity increase, 20 hires, $500k savings)...'
-                  }
-                  value={userInputText}
-                  onChange={(e) => setUserInputText(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-medium"
-                />
+              <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="flex-1 flex items-center space-x-2">
+                  <input
+                    type="text"
+                    placeholder={
+                      currentStep === 'PROBE_ACTION'
+                        ? 'Describe your project or ask a question (e.g. "What do you mean by latency?")...'
+                        : 'Enter specific metric or ask a question...'
+                    }
+                    value={userInputText}
+                    onChange={(e) => setUserInputText(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-medium"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={!userInputText.trim()}
+                    className="flex items-center space-x-1.5 px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md disabled:opacity-50 transition shrink-0"
+                  >
+                    <span>Submit</span>
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
 
                 <button
-                  type="submit"
-                  disabled={!userInputText.trim()}
-                  className="flex items-center space-x-1.5 px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md disabled:opacity-50 transition shrink-0"
+                  type="button"
+                  onClick={() => {
+                    const currentGap = availableGaps[currentGapIndex];
+                    const gapTitle = currentGap?.jd_requirement || 'this requirement';
+                    const qText = `Could you clarify what details or metrics work best for "${gapTitle}"?`;
+                    const clarification = generateAgenticClarification(gapTitle, qText);
+
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        id: `msg-${Date.now()}-u`,
+                        sender: 'user',
+                        text: qText,
+                        timestamp: getTime()
+                      },
+                      {
+                        id: `msg-${Date.now()}-a`,
+                        sender: 'assistant',
+                        text: clarification,
+                        timestamp: getTime()
+                      }
+                    ]);
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 font-bold text-xs transition flex items-center justify-center gap-1.5 shrink-0"
+                  title="Ask AI Agent for context, guidance, or real-world metric examples"
                 >
-                  <span>Submit</span>
-                  <Send className="h-4 w-4" />
+                  <HelpCircle className="w-4 h-4 text-amber-600" />
+                  <span>Ask Question / Get Example</span>
                 </button>
               </form>
             )}

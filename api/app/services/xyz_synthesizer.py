@@ -38,6 +38,74 @@ class XYZSynthesizer:
             )
 
     @staticmethod
+    def is_clarifying_question(user_input: str) -> bool:
+        """
+        Determines whether the candidate's input is a clarifying question rather than a direct answer.
+        """
+        user_input_stripped = user_input.strip()
+        if user_input_stripped.endswith("?"):
+            return True
+
+        lower = user_input_stripped.lower()
+        question_signals = [
+            "what do you mean", "could you clarify", "can you clarify", "what kind of",
+            "can you give an example", "give me an example", "how do i", "what is",
+            "should i include", "does this count", "not sure what", "explain",
+            "what metric", "which project", "can you explain", "what format",
+            "what type", "does it matter", "is it okay if", "how should i", "example"
+        ]
+        return any(sig in lower for sig in question_signals)
+
+    @staticmethod
+    def handle_candidate_clarification(gap_title: str, user_question: str) -> str:
+        """
+        Generates an agentic response answering the candidate's clarifying question,
+        providing context and real-world examples for the target requirement gap.
+        """
+        system_prompt = (
+            "You are an empathetic, highly agentic Executive Recruiter & Career Coach. "
+            "The candidate is asking a clarifying question about a specific job requirement gap. "
+            "Answer their question clearly, explain the requirement context, provide 1-2 concrete real-world examples "
+            "of what metric/achievement details they can share, and warmly re-prompt them to answer when ready."
+        )
+
+        user_prompt = (
+            f"Target Requirement: {gap_title}\n"
+            f"Candidate Question: {user_question}"
+        )
+
+        if LLMClient.is_openai_available():
+            try:
+                return LLMClient.chat_completion(system_prompt, user_prompt)
+            except Exception:
+                pass
+
+        # Dynamic fallback agentic explanation generator
+        gap_lower = gap_title.lower()
+
+        if "latency" in gap_lower or "performance" in gap_lower or "speed" in gap_lower:
+            example = "For example: 'Reduced page load time by 45% (from 2.4s to 1.3s)' or 'Lowered API p99 latency from 180ms to 45ms'."
+            concept = "how you improved speed, throughput, or responsiveness in your code or architecture."
+        elif "team" in gap_lower or "leadership" in gap_lower or "manage" in gap_lower:
+            example = "For example: 'Led a cross-functional team of 8 engineers delivering 4 major releases with 100% on-time completion'."
+            concept = "the team size, leadership scope, or process improvements you spearheaded."
+        elif "security" in gap_lower or "soc" in gap_lower or "compliance" in gap_lower:
+            example = "For example: 'Achieved 100% SOC2 Type II compliance across 32 security controls with zero critical findings'."
+            concept = "how you implemented security policies, access controls, or audit readiness."
+        elif "cloud" in gap_lower or "aws" in gap_lower or "infrastructure" in gap_lower:
+            example = "For example: 'Migrated legacy workloads to AWS ECS/EKS, reducing cloud infrastructure costs by 28%'."
+            concept = "the scale of infrastructure, migration execution, or cloud cost optimizations achieved."
+        else:
+            example = f"For example: 'Architected and deployed {gap_title} solution, improving system reliability by 35%'."
+            concept = f"how you applied {gap_title} in practice and what outcome or metric resulted."
+
+        return (
+            f"Great question! When asking about **{gap_title}**, we are looking for {concept}\n\n"
+            f"💡 **Example of what works well:** {example}\n\n"
+            f"Feel free to share any project details, scale, or metrics from your past work!"
+        )
+
+    @staticmethod
     def synthesize_google_xyz(gap_title: str, user_answer: str) -> Dict[str, str]:
         """
         Reformats a raw conversational answer into the Google XYZ formula:

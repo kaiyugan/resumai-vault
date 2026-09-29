@@ -61,7 +61,54 @@ def submit_answer(req: UserAnswerRequest, db: Session = Depends(get_db)):
 
     session.user_response = req.user_response
 
-    # Synthesize Google XYZ bullet
+    # Check if candidate asked a clarifying question rather than providing an answer
+    if XYZSynthesizer.is_clarifying_question(req.user_response):
+        agent_clarification = XYZSynthesizer.handle_candidate_clarification(
+            gap_title=session.missing_skill_or_gap,
+            user_question=req.user_response
+        )
+        db.commit()
+        db.refresh(session)
+
+        messages = [
+            {
+                "id": "msg-1",
+                "sender": "assistant",
+                "text": session.generated_question,
+                "timestamp": "12:00 PM",
+                "isProposal": False,
+                "proposedXYZBullet": None
+            },
+            {
+                "id": "msg-user-2",
+                "sender": "user",
+                "text": req.user_response,
+                "timestamp": "12:01 PM",
+                "isProposal": False,
+                "proposedXYZBullet": None
+            },
+            {
+                "id": "msg-assistant-clarify",
+                "sender": "assistant",
+                "text": agent_clarification,
+                "timestamp": "12:02 PM",
+                "isProposal": False,
+                "proposedXYZBullet": None
+            }
+        ]
+
+        return {
+            "id": session.id,
+            "target_job_id": session.target_job_id,
+            "gap_title": session.missing_skill_or_gap,
+            "generated_question": session.generated_question,
+            "messages": messages,
+            "synthesized_bullet": None,
+            "status": session.status,
+            "created_at": session.created_at.isoformat() if session.created_at else "2026-02-01T10:00:00Z"
+        }
+
+    # Synthesize Google XYZ bullet for valid candidate answers
     synthesis = XYZSynthesizer.synthesize_google_xyz(
         gap_title=session.missing_skill_or_gap,
         user_answer=req.user_response
