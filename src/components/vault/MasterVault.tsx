@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import type { MasterAchievement } from '../../types/resume';
 
+import { extractTextFromFileClientSide } from '../../utils/fileExtractor';
+
 export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ onNavigateToJDEngine }) => {
   const {
     profile,
@@ -66,6 +68,8 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
     if (!selectedFile) return;
     setIsIngesting(true);
     setIngestSuccess(false);
+
+    // 1. Try Backend API parsing first
     try {
       const res = await ingestFileAPI(selectedFile, profile.id || 'prof-1');
       setIsIngesting(false);
@@ -73,10 +77,31 @@ export const MasterVault: React.FC<{ onNavigateToJDEngine: () => void }> = ({ on
       setSelectedFile(null);
       setIngestMsg(res.message || `Successfully parsed ${selectedFile.name}`);
       setTimeout(() => setIngestSuccess(false), 5000);
+      return;
     } catch (e: any) {
-      setIsIngesting(false);
-      alert('File ingestion warning: ' + (e.message || 'Failed to parse file'));
+      console.warn('Backend API resume parsing unavailable, attempting client-side fallback extraction:', e);
     }
+
+    // 2. Client-Side Parsing Fallback (Guarantees parsing works on Vercel frontend without local server)
+    try {
+      const extractedText = await extractTextFromFileClientSide(selectedFile);
+      if (extractedText && extractedText.trim().length > 15) {
+        const success = await ingestUnstructuredText(extractedText);
+        setIsIngesting(false);
+        if (success) {
+          setIngestSuccess(true);
+          setSelectedFile(null);
+          setIngestMsg(`Successfully parsed ${selectedFile.name} (Client-Side AI Engine)`);
+          setTimeout(() => setIngestSuccess(false), 5000);
+          return;
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn('Client-side file parse fallback failed:', fallbackErr);
+    }
+
+    setIsIngesting(false);
+    alert(`Could not extract readable text from "${selectedFile.name}". Please try selecting "Paste Text" tab and pasting your raw resume text.`);
   };
 
   const handleStartEdit = (ach: MasterAchievement) => {
