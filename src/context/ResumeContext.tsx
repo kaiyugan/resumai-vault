@@ -69,10 +69,7 @@ interface ResumeContextType {
   clearVault: () => void;
 }
 
-const anyKeywordIn = (text: string, keywords: string[]): boolean => {
-  const lower = text.toLowerCase();
-  return keywords.some((kw) => lower.includes(kw));
-};
+
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
 
@@ -405,171 +402,22 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.warn('Backend API ingestion offline, running client-side multi-entity extraction:', err);
     }
 
-    // Helper to validate clean human-readable strings (filtering binary garbage like tWcl, y?UE, (@)
-    const isValidReadableString = (str: string) => {
-      if (!str || str.trim().length < 3) return false;
-      const letters = str.match(/[a-zA-Z]/g) || [];
-      if (letters.length < 3) return false;
-      // Reject binary PDF token symbols
-      if (/^[\W_]+$/.test(str)) return false;
-      const words = str.match(/[a-zA-Z]{2,}/g) || [];
-      return words.length > 0;
-    };
+    // 2. Client-side Intelligent AI Resume Parsing Engine
+    const { parseResumeTextIntelligently } = await import('../utils/resumeParser');
+    const parsedResult = parseResumeTextIntelligently(rawText, profile.id || 'prof-1');
 
-    // Client-side Fallback Multi-Entity Parsing
-    const lines = rawText
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => isValidReadableString(l));
-
-    if (lines.length === 0) return false;
-
-    // Contact info
-    const emailMatch = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    const phoneMatch = rawText.match(/\+?\d[\d\s\-()]{8,}/);
-    const linkedinMatch = rawText.match(/linkedin\.com\/in\/[\w-]+/);
-
-    const firstLineCandidate = lines[0] && !lines[0].includes('@') && isValidReadableString(lines[0]) ? lines[0].slice(0, 40) : '';
-    const parsedName = firstLineCandidate || profile.name;
-    const parsedEmail = emailMatch ? emailMatch[0] : profile.email;
-    const parsedPhone = phoneMatch ? phoneMatch[0] : profile.phone;
-    const parsedLinkedin = linkedinMatch ? linkedinMatch[0] : profile.linkedin;
-
-    // Search for Candidate Role Title
-    let candidateTitle = profile.title;
-    for (const l of lines.slice(0, 10)) {
-      if (anyKeywordIn(l, ['manager', 'lead', 'director', 'engineer', 'recruiting', 'specialist', 'architect', 'consultant', 'analyst', 'developer'])) {
-        if (!l.includes('@') && l.length < 60 && isValidReadableString(l)) {
-          candidateTitle = l;
-          break;
-        }
-      }
+    if (parsedResult.experiences.length > 0) {
+      setProfile((prev) => ({
+        ...prev,
+        ...parsedResult.profile
+      }));
+      setExperiences(parsedResult.experiences);
+      setAchievements(parsedResult.achievements);
+      setSkills(parsedResult.skills);
+      return true;
     }
 
-    // Search for Summary
-    let parsedSummary = '';
-    const summaryIdx = lines.findIndex((l) => l.toUpperCase().includes('SUMMARY') || l.toUpperCase().includes('PROFILE'));
-    if (summaryIdx !== -1 && lines[summaryIdx + 1] && isValidReadableString(lines[summaryIdx + 1])) {
-      parsedSummary = lines[summaryIdx + 1];
-    } else {
-      parsedSummary = `Experienced ${candidateTitle} with a strong history of leading key initiatives, optimizing operational workflows, and driving high-impact results.`;
-    }
-
-    setProfile({
-      ...profile,
-      name: parsedName,
-      title: candidateTitle,
-      email: parsedEmail,
-      phone: parsedPhone,
-      linkedin: parsedLinkedin,
-      summary: parsedSummary
-    });
-
-    // Detect multiple experiences
-    const parsedExperiences: MasterExperience[] = [];
-    const parsedAchievements: MasterAchievement[] = [];
-    
-    // Group lines into experience headers and bullets
-    const headerRegex = /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})\b.*?(?:Present|\d{4}))/i;
-    let currentExp: MasterExperience | null = null;
-
-    lines.forEach((line, idx) => {
-      const matchDate = line.match(headerRegex);
-      const isHeader = matchDate || (line.includes('|') || line.includes('–') || anyKeywordIn(line, ['manager', 'engineer', 'lead', 'director', 'staffing', 'recruiting', 'consultant']));
-
-      if (isHeader && !line.startsWith('•') && !line.startsWith('-') && line.length < 90 && isValidReadableString(line)) {
-        const parts = line.split(/[|•–-]/).map((p) => p.trim()).filter((p) => isValidReadableString(p));
-        const rawRole = parts[0] || 'Role Title';
-        const rawCompany = parts[1] || 'Company / Organization';
-
-        const role = isValidReadableString(rawRole) ? rawRole : candidateTitle;
-        const company = isValidReadableString(rawCompany) ? rawCompany : 'Organization';
-        const expId = `exp-parsed-${Date.now()}-${parsedExperiences.length + 1}`;
-
-        currentExp = {
-          id: expId,
-          profile_id: profile.id,
-          company: company,
-          role_title: role,
-          location: 'Remote / Hybrid',
-          start_date: matchDate ? matchDate[0].split('–')[0]?.trim() || '2022-01-01' : '2022-01-01',
-          end_date: line.toLowerCase().includes('present') ? 'Present' : '2024-01-01',
-          is_current: line.toLowerCase().includes('present'),
-          raw_summary: line,
-          skills_used: [],
-          created_at: new Date().toISOString()
-        };
-        parsedExperiences.push(currentExp);
-      } else if (currentExp && line.length > 15 && isValidReadableString(line)) {
-        const metricMatch = line.match(/\d+%|\$\d+|\d+\+/);
-        parsedAchievements.push({
-          id: `ach-parsed-${Date.now()}-${idx}`,
-          experience_id: currentExp.id,
-          raw_bullet: line.replace(/^[•\-*\d.]+\s*/, ''),
-          quantified_metric: metricMatch ? { value: metricMatch[0] } : {},
-          action_verb: line.split(' ')[0] || 'Achieved',
-          context: `Ingested Bullet for ${currentExp.company}`,
-          vector_tags: ['Uploaded Resume', currentExp.company],
-          created_at: new Date().toISOString()
-        });
-      }
-    });
-
-    if (parsedExperiences.length > 0) {
-      setExperiences(parsedExperiences);
-      setAchievements(parsedAchievements);
-    } else {
-      // Fallback single experience if formatting was unstructured plain paragraph
-      const fallbackExpId = `exp-parsed-${Date.now()}`;
-      const fallbackExp: MasterExperience = {
-        id: fallbackExpId,
-        profile_id: profile.id,
-        company: 'Career History',
-        role_title: candidateTitle,
-        location: 'City, State',
-        start_date: '2022-01-01',
-        is_current: true,
-        raw_summary: rawText.slice(0, 250),
-        skills_used: [],
-        created_at: new Date().toISOString()
-      };
-      setExperiences([fallbackExp]);
-
-      const fallbackAchs = lines
-        .filter((l) => l.length > 20 && isValidReadableString(l))
-        .map((l, i) => ({
-          id: `ach-fallback-${Date.now()}-${i}`,
-          experience_id: fallbackExpId,
-          raw_bullet: l.replace(/^[•\-*\d.]+\s*/, ''),
-          quantified_metric: {},
-          action_verb: l.split(' ')[0] || 'Achieved',
-          context: 'Parsed Resume',
-          vector_tags: ['Uploaded Resume'],
-          created_at: new Date().toISOString()
-        }));
-      setAchievements(fallbackAchs);
-    }
-
-    // Extract Skills cleanly
-    const knownSkills = [
-      'Recruiting Strategy', 'Technical Staffing', 'Talent Acquisition', 'LATAM Expansion', 'Team Leadership',
-      'Pipeline Management', 'Workday', 'Greenhouse', 'Sourcing', 'TypeScript', 'JavaScript', 'Python',
-      'Next.js', 'React', 'FastAPI', 'PostgreSQL', 'AWS', 'Docker', 'Kubernetes', 'Project Management',
-      'Product Strategy', 'Data Analytics', 'SQL', 'Git', 'Agile', 'Scrum'
-    ];
-    const foundSkills = knownSkills.filter((s) => rawText.toLowerCase().includes(s.toLowerCase()));
-    if (foundSkills.length > 0) {
-      setSkills(
-        foundSkills.map((s, idx) => ({
-          id: `sk-parsed-${Date.now()}-${idx}`,
-          name: s,
-          category: 'Hard Skill',
-          years_experience: 3
-        }))
-      );
-    }
-
-    return true;
+    return false;
   };
 
   const addTargetJob = (job: Omit<TargetJob, 'id' | 'created_at'>) => {
